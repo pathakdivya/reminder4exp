@@ -1,1 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Reminder Generator</title>
+<style>
+  :root {
+    --bg: #0b141a;
+    --card-bg: #202c33;
+    --card-border: #2a3942;
+    --input-bg: #2a3942;
+    --text: #e9edef;
+    --text-muted: #8696a0;
+    --accent: #25d366;
+    --accent-hover: #1fb958;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #06140d;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 14px 0 6px;
+  }
+  label:first-child { margin-top: 0; }
+
+  input, textarea, select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 90px;
+    line-height: 1.4;
+  }
+
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+
+  .generate-btn {
+    width: 100%;
+    margin-top: 20px;
+    background: var(--accent);
+    color: #06140d;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .generate-btn:hover { background: var(--accent-hover); }
+  .generate-btn:active { transform: scale(0.98); }
+  .generate-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .result {
+    display: none;
+    margin-top: 16px;
+  }
+  .result.visible { display: block; }
+
+  .preview {
+    font-size: 13px;
+    color: #c9d1d6;
+    background: #182229;
+    border-radius: 8px;
+    padding: 10px 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+  }
+
+  .send-btn {
+    display: block;
+    text-align: center;
+    background: var(--accent);
+    color: #06140d;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    text-decoration: none;
+  }
+  .send-btn:hover { background: var(--accent-hover); }
+
+  .history { margin-top: 8px; }
+  .history-title {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .history-item .name { font-weight: 600; font-size: 14px; }
+  .history-item .meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+  .history-item .mini-send {
+    flex-shrink: 0;
+    background: var(--accent);
+    color: #06140d;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .history-item .mini-send:hover { background: var(--accent-hover); }
+  .clear-history {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* File upload */
+  .drop-zone {
+    border: 2px dashed var(--card-border);
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: #182229;
+  }
+  .drop-zone input[type=file] { display: none; }
+  .drop-zone .icon { font-size: 28px; margin-bottom: 8px; }
+  .drop-zone .main-text { font-size: 14px; font-weight: 600; }
+  .drop-zone .sub-text { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .file-loaded {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    background: #182229;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  .file-loaded.visible { display: flex; }
+  .file-loaded .fname { font-weight: 600; }
+  .file-loaded button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+
+  /* Bookings list */
+  .bookings-list { margin-top: 16px; }
+  .booking-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #182229;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .booking-row input[type=checkbox] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+  }
+  .booking-row .info { flex: 1; min-width: 0; }
+  .booking-row .name { font-weight: 600; font-size: 14px; }
+  .booking-row .meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+  .booking-row .mini-send {
+    flex-shrink: 0;
+    background: var(--accent);
+    color: #06140d;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .booking-row .mini-send:hover { background: var(--accent-hover); }
+  .booking-row.no-phone { opacity: 0.5; }
+  .booking-row .no-phone-tag {
+    font-size: 11px;
+    color: #e08a3c;
+    flex-shrink: 0;
+  }
+
+  .select-all-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .select-all-row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+  }
+  .select-all-row input[type=checkbox] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+  }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 20px 0;
+  }
+
+  .footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid var(--card-border);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>WhatsApp Reminder Generator</h1>
+    <div class="sub">Fill in details manually, or import your Calendly export.</div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tabBtnManual" onclick="switchTab('manual')">Manual</button>
+      <button class="tab-btn" id="tabBtnCalendly" onclick="switchTab('calendly')">Calendly Export</button>
+    </div>
+
+    <!-- MANUAL TAB -->
+    <div class="tab-panel active" id="panelManual">
+      <div class="card">
+        <label for="name">First name</label>
+        <input type="text" id="name" placeholder="e.g. Arjun" autocomplete="off">
+
+        <label for="phone">Phone number</label>
+        <input type="text" id="phone" placeholder="e.g. +91 70033 17377 or 7003317377" autocomplete="off">
+        <div class="hint">Any format works — spaces, dashes, and leading quotes are stripped automatically. Assumes India (+91) if no country code given.</div>
+
+        <div class="row">
+          <div>
+            <label for="time">Time</label>
+            <input type="text" id="time" placeholder="e.g. 2:30 PM" autocomplete="off">
+          </div>
+          <div>
+            <label for="date">Date</label>
+            <input type="text" id="date" placeholder="e.g. August 14" autocomplete="off">
+          </div>
+        </div>
+
+        <label for="template">Message template</label>
+        <textarea id="template">Hi {name}, this is Divya. Gentle reminder for your experiment with me at {time} on {date}.
+Location - Room 517, 4th Floor, ESB-2 Building (Department of Cognitive Science)
+Please let me know if there are any changes in your availability and we can easily reschedule you to the next available slot. See you soon!</textarea>
+        <div class="hint">Use {name}, {time}, {date} as placeholders — edit freely, it's saved automatically.</div>
+
+        <button class="generate-btn" onclick="generateLink()">Generate WhatsApp Link</button>
+
+        <div class="result" id="result">
+          <div class="preview" id="preview"></div>
+          <a class="send-btn" id="sendBtn" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
+        </div>
+      </div>
+
+      <div class="history" id="historyWrap" style="display:none;">
+        <div class="history-title">
+          <span>Recent reminders</span>
+          <button class="clear-history" onclick="clearHistory()">clear</button>
+        </div>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <!-- CALENDLY EXPORT TAB -->
+    <div class="tab-panel" id="panelCalendly">
+      <div class="card">
+        <div class="file-loaded" id="fileLoaded">
+          <span class="fname" id="fileName"></span>
+          <button onclick="resetCsv()">remove</button>
+        </div>
+
+        <label class="drop-zone" id="dropZone">
+          <div class="icon">📄</div>
+          <div class="main-text">Click to upload, or drag & drop</div>
+          <div class="sub-text">Calendly "events-export.csv"</div>
+          <input type="file" id="csvInput" accept=".csv">
+        </label>
+
+        <label for="templateCal" style="margin-top:18px;">Message template</label>
+        <textarea id="templateCal">Hi {name}, this is Divya. Gentle reminder for your experiment with me at {time} on {date}.
+Location - Room 517, 4th Floor, ESB-2 Building (Department of Cognitive Science)
+Please let me know if there are any changes in your availability and we can easily reschedule you to the next available slot. See you soon!</textarea>
+        <div class="hint">Use {name}, {time}, {date} as placeholders — shared across both tabs.</div>
+      </div>
+
+      <div class="card" id="bookingsCard" style="display:none;">
+        <div class="select-all-row">
+          <label><input type="checkbox" id="filterUpcoming" checked onchange="renderBookings()"> Only show upcoming (not yet started)</label>
+        </div>
+        <div id="bookingsList" class="bookings-list"></div>
+      </div>
+    </div>
+
+    <div class="footer">Made with love for CGS peeps 💚 &nbsp;·&nbsp; MIT License &copy; Divya Pathak, NS Lab</div>
+  </div>
+
+<script>
+  /* ---------- Shared state (in-memory only, no browser storage) ---------- */
+  let memoryStore = {
+    manualTemplate: null,
+    calTemplate: null,
+    history: [],
+    csvRows: []
+  };
+
+  /* ---------- Tabs ---------- */
+  function switchTab(tab) {
+    document.getElementById('tabBtnManual').classList.toggle('active', tab === 'manual');
+    document.getElementById('tabBtnCalendly').classList.toggle('active', tab === 'calendly');
+    document.getElementById('panelManual').classList.toggle('active', tab === 'manual');
+    document.getElementById('panelCalendly').classList.toggle('active', tab === 'calendly');
+  }
+
+  /* ---------- Shared helpers ---------- */
+  function cleanPhone(raw) {
+    if (!raw) return '';
+    let digits = raw.replace(/[^\d+]/g, '');
+    digits = digits.replace(/^\+/, '');
+    if (digits.length === 10) {
+      digits = '91' + digits;
+    } else if (digits.startsWith('0') && digits.length === 11) {
+      digits = '91' + digits.slice(1);
+    }
+    return digits;
+  }
+
+  function buildMessage(template, name, time, date) {
+    return template
+      .replaceAll('{name}', name)
+      .replaceAll('{time}', time)
+      .replaceAll('{date}', date);
+  }
+
+  function buildWaLink(phone, message) {
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  /* ---------- Manual tab ---------- */
+  const templateEl = document.getElementById('template');
+  templateEl.addEventListener('input', () => { memoryStore.manualTemplate = templateEl.value; });
+  if (memoryStore.manualTemplate) templateEl.value = memoryStore.manualTemplate;
+
+  function generateLink() {
+    const name = document.getElementById('name').value.trim();
+    const phoneRaw = document.getElementById('phone').value.trim();
+    const time = document.getElementById('time').value.trim();
+    const date = document.getElementById('date').value.trim();
+    const template = templateEl.value;
+
+    if (!name || !phoneRaw || !time || !date) {
+      alert('Please fill in name, phone, time, and date.');
+      return;
+    }
+
+    const phone = cleanPhone(phoneRaw);
+    const message = buildMessage(template, name, time, date);
+    const link = buildWaLink(phone, message);
+
+    document.getElementById('preview').textContent = message;
+    document.getElementById('sendBtn').href = link;
+    document.getElementById('result').classList.add('visible');
+
+    memoryStore.history.unshift({ name, time, date, link });
+    memoryStore.history = memoryStore.history.slice(0, 10);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const wrap = document.getElementById('historyWrap');
+    const list = document.getElementById('historyList');
+    if (memoryStore.history.length === 0) {
+      wrap.style.display = 'none';
+      return;
+    }
+    wrap.style.display = 'block';
+    list.innerHTML = memoryStore.history.map(item => `
+      <div class="history-item">
+        <div>
+          <div class="name">${escapeHtml(item.name)}</div>
+          <div class="meta">${escapeHtml(item.time)} &middot; ${escapeHtml(item.date)}</div>
+        </div>
+        <a class="mini-send" href="${item.link}" target="_blank" rel="noopener">Send</a>
+      </div>
+    `).join('');
+  }
+
+  function clearHistory() {
+    memoryStore.history = [];
+    renderHistory();
+  }
+
+  /* ---------- Calendly Export tab ---------- */
+  const templateCalEl = document.getElementById('templateCal');
+  templateCalEl.addEventListener('input', () => {
+    memoryStore.calTemplate = templateCalEl.value;
+    renderBookings();
+  });
+  if (memoryStore.calTemplate) templateCalEl.value = memoryStore.calTemplate;
+
+  const dropZone = document.getElementById('dropZone');
+  const csvInput = document.getElementById('csvInput');
+
+  csvInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+
+  function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const rows = parseCsv(e.target.result);
+        memoryStore.csvRows = rows;
+        document.getElementById('fileName').textContent = `${file.name} — ${rows.length} bookings found`;
+        document.getElementById('fileLoaded').classList.add('visible');
+        document.getElementById('dropZone').style.display = 'none';
+        document.getElementById('bookingsCard').style.display = 'block';
+        renderBookings();
+      } catch (err) {
+        alert('Could not parse this file. Make sure it is a Calendly events-export.csv file.\n\n' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function resetCsv() {
+    memoryStore.csvRows = [];
+    csvInput.value = '';
+    document.getElementById('fileLoaded').classList.remove('visible');
+    document.getElementById('dropZone').style.display = 'block';
+    document.getElementById('bookingsCard').style.display = 'none';
+  }
+
+  // Minimal CSV parser handling quoted fields with commas
+  function parseCsv(text) {
+    const lines = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    text = text.replace(/\r\n/g, '\n');
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          field += c;
+        }
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\n') { row.push(field); lines.push(row); row = []; field = ''; }
+        else field += c;
+      }
+    }
+    if (field.length || row.length) { row.push(field); lines.push(row); }
+
+    if (lines.length < 2) throw new Error('No data rows found.');
+    const headers = lines[0];
+    const idx = {
+      firstName: headers.indexOf('Invitee First Name'),
+      fullName: headers.indexOf('Invitee Name'),
+      start: headers.indexOf('Start Date & Time'),
+      canceled: headers.indexOf('Canceled'),
+      q1: headers.indexOf('Question 1'),
+      r1: headers.indexOf('Response 1'),
+      q2: headers.indexOf('Question 2'),
+      r2: headers.indexOf('Response 2'),
+    };
+    if (idx.start === -1 || idx.fullName === -1) {
+      throw new Error('This does not look like a Calendly events-export.csv (expected columns not found).');
+    }
+
+    const results = [];
+    for (let i = 1; i < lines.length; i++) {
+      const r = lines[i];
+      if (r.length < 2 || !r[idx.fullName]) continue;
+      if (idx.canceled !== -1 && (r[idx.canceled] || '').toLowerCase() === 'true') continue;
+
+      const name = (idx.firstName !== -1 && r[idx.firstName]) ? r[idx.firstName].trim() : (r[idx.fullName] || '').trim().split(' ')[0];
+      const fullName = (r[idx.fullName] || '').trim();
+      const startRaw = (r[idx.start] || '').trim();
+
+      // find phone number from Q&A fields (look for "contact" or "whatsapp" in question text)
+      let phone = '';
+      if (idx.q1 !== -1 && /contact|whatsapp|phone/i.test(r[idx.q1] || '')) phone = r[idx.r1] || '';
+      if (!phone && idx.q2 !== -1 && /contact|whatsapp|phone/i.test(r[idx.q2] || '')) phone = r[idx.r2] || '';
+      if (!phone && idx.r1 !== -1 && /\d{7,}/.test(r[idx.r1] || '')) phone = r[idx.r1] || '';
+
+      const parsed = parseCalendlyDate(startRaw);
+
+      results.push({
+        name,
+        fullName,
+        phone: phone.trim(),
+        startRaw,
+        dateObj: parsed,
+        timeStr: parsed ? formatTime(parsed) : '',
+        dateStr: parsed ? formatDate(parsed) : startRaw,
+      });
+    }
+
+    // sort by start time ascending
+    results.sort((a, b) => {
+      if (!a.dateObj) return 1;
+      if (!b.dateObj) return -1;
+      return a.dateObj - b.dateObj;
+    });
+
+    return results;
+  }
+
+  // Calendly export format: "2026-08-14 11:00 am"
+  function parseCalendlyDate(str) {
+    const m = str.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})\s*(am|pm)/i);
+    if (!m) return null;
+    let [, y, mo, d, h, mi, ap] = m;
+    h = parseInt(h, 10);
+    if (ap.toLowerCase() === 'pm' && h !== 12) h += 12;
+    if (ap.toLowerCase() === 'am' && h === 12) h = 0;
+    return new Date(parseInt(y), parseInt(mo) - 1, parseInt(d), h, parseInt(mi));
+  }
+
+  function formatTime(d) {
+    let h = d.getHours();
+    const m = d.getMinutes();
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    return `${h}:${String(m).padStart(2, '0')} ${ap}`;
+  }
+
+  function formatDate(d) {
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${months[d.getMonth()]} ${d.getDate()}`;
+  }
+
+  function renderBookings() {
+    const list = document.getElementById('bookingsList');
+    const onlyUpcoming = document.getElementById('filterUpcoming').checked;
+    const now = new Date();
+
+    let rows = memoryStore.csvRows;
+    if (onlyUpcoming) {
+      rows = rows.filter(r => !r.dateObj || r.dateObj >= now);
+    }
+
+    if (rows.length === 0) {
+      list.innerHTML = '<div class="empty-state">No bookings match this filter.</div>';
+      return;
+    }
+
+    const template = templateCalEl.value;
+
+    list.innerHTML = rows.map((r, i) => {
+      const phone = cleanPhone(r.phone);
+      const hasPhone = phone.length >= 10;
+      const message = buildMessage(template, r.name, r.timeStr || r.startRaw, r.dateStr);
+      const link = hasPhone ? buildWaLink(phone, message) : '#';
+
+      return `
+        <div class="booking-row ${hasPhone ? '' : 'no-phone'}">
+          <div class="info">
+            <div class="name">${escapeHtml(r.fullName)}</div>
+            <div class="meta">${escapeHtml(r.timeStr || r.startRaw)} &middot; ${escapeHtml(r.dateStr)}${hasPhone ? ' &middot; ' + escapeHtml(r.phone) : ''}</div>
+          </div>
+          ${hasPhone
+            ? `<a class="mini-send" href="${link}" target="_blank" rel="noopener">Send</a>`
+            : `<span class="no-phone-tag">no phone found</span>`}
+        </div>
+      `;
+    }).join('');
+  }
+</script>
+</body>
+</html>
 
